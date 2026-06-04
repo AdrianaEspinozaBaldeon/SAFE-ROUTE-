@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeRoute — Mapa de seguridad universitaria</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --morado:       #5B21B6;
+      --morado-dark:  #3B0F8C;
+      --morado-light: #7C3AED;
+      --verde:        #16A34A;
+      --verde-light:  #22C55E;
+      --amarillo:     #EAB308;
+      --rojo:         #DC2626;
+      --bg:           #0D0B1A;
+      --surface:      #151225;
+      --surface2:     #1E1A33;
+      --text:         #F0EEFF;
+      --muted:        #9B93C4;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 10% 20%, rgba(91,33,182,.35) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 80%, rgba(22,163,74,.2) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+    }
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: rgba(91,33,182,.25);
+      border: 1px solid rgba(124,58,237,.4);
+      border-radius: 999px;
+      padding: .35rem 1rem;
+      font-size: .78rem;
+      font-weight: 600;
+      color: #C4B5FD;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+      animation: fadeDown .6s ease both;
+    }
+    .logo-badge::before { content: '🛡️'; }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.8rem, 9vw, 5rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -.02em;
+      animation: fadeDown .7s .1s ease both;
+    }
+    h1 span.safe  { color: var(--text); }
+    h1 span.route {
+      color: transparent;
+      -webkit-text-stroke: 2px var(--verde-light);
+    }
+    .subtitle {
+      margin-top: .9rem;
+      font-size: clamp(.95rem, 2.5vw, 1.15rem);
+      color: var(--muted);
+      max-width: 420px;
+      margin-inline: auto;
+      animation: fadeDown .7s .2s ease both;
+    }
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 1.2rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 20px;
+      overflow: hidden;
+      animation: fadeUp .6s ease both;
+    }
+    .card:nth-child(2) { animation-delay: .1s; }
+    .card:nth-child(3) { animation-delay: .2s; }
+    .card:nth-child(4) { animation-delay: .3s; }
+    .card-header {
+      padding: 1.2rem 1.5rem .8rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .card-header .icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .icon-map    { background: rgba(91,33,182,.4); }
+    .icon-report { background: rgba(22,163,74,.3); }
+    .icon-sos    { background: rgba(220,38,38,.3); }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .map-wrap {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--surface2);
+    }
+    .map-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      padding: 1rem 1.5rem 1.3rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green  { background: var(--verde-light); box-shadow: 0 0 6px var(--verde-light); }
+    .dot-yellow { background: var(--amarillo);    box-shadow: 0 0 6px var(--amarillo); }
+    .dot-red    { background: var(--rojo);        box-shadow: 0 0 6px var(--rojo); }
+    .report-body {
+      padding: 1.2rem 1.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .report-body p {
+      font-size: .9rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .btn-report {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      background: linear-gradient(135deg, var(--verde), #15803D);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: .85rem 2rem;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 18px rgba(22,163,74,.35);
+      width: 100%;
+    }
+    .btn-report:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(22,163,74,.45);
+    }
+    .btn-report::before { content: '📋'; font-size: 1.1rem; }
+    .sos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem;
+      padding: 1rem 1.5rem 1.5rem;
+    }
+    @media (max-width: 420px) {
+      .sos-grid { grid-template-columns: 1fr; }
+    }
+    .sos-card {
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+    .sos-card.full { grid-column: 1 / -1; }
+    .sos-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+    }
+    .sos-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--rojo);
+    }
+    .sos-number.serenazgo { font-size: 1.05rem; color: #FB923C; }
+    .sos-name { font-size: .82rem; color: var(--muted); }
+    .sos-icon { font-size: 1.3rem; margin-bottom: .2rem; }
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .78rem;
+      color: rgba(155,147,196,.5);
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-badge">Universidad Continental · Huancayo</div>
+    <h1><span class="safe">Safe</span><span class="route">Route</span></h1>
+    <p class="subtitle">Mapa de seguridad cerca a tu universidad</p>
+  </header>
+
+  <main>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon icon-map">🗺️</div>
+        <span class="card-title">Mapa de zonas</span>
+      </div>
+      <div class="map-wrap">
+        <iframe src="https://www.google.com/maps/d/embed?mid=1DsHY0tGeycXEWKkNSQHge7qL7vbGgn0&ehbc=2E312F" allowfullscreen loading="lazy"></iframe>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot dot-green"></span> Zona segura</div>
+        <div class="legend-item"><span class="dot dot-yellow"></span> Precaución</div>
+        <div class="legend-item"><span class="dot dot-red"></span> Zona peligrosa</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon icon-report">📢</div>
+        <span class="card-title">Reporta un incidente</span>
+      </div>
+      <div class="report-body">
+        <p>¿Viviste o presenciaste algo inseguro cerca del campus? Tu reporte ayuda a mantener el mapa actualizado y protege a tus compañeros.</p>
+        <a class="btn-report" href="https://forms.gle/6YF2BaC9TM1ZtHHz6" target="_blank" rel="noopener">
+          Reportar ahora
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="icon icon-sos">🚨</div>
+        <span class="card-title">Números de emergencia</span>
+      </div>
+      <div class="sos-grid">
+        <div class="sos-card">
+          <div class="sos-icon">👮</div>
+          <div class="sos-label">Policía Nacional</div>
+          <div class="sos-number">105</div>
+          <div class="sos-name">Emergencias PNP</div>
+        </div>
+        <div class="sos-card">
+          <div class="sos-icon">🏥</div>
+          <div class="sos-label">Ambulancia</div>
+          <div class="sos-number">106</div>
+          <div class="sos-name">SAMU / Emergencias</div>
+        </div>
+        <div class="sos-card full">
+          <div class="sos-icon">🛡️</div>
+          <div class="sos-label">Serenazgo Huancayo</div>
+          <div class="sos-number serenazgo">064-202050 &nbsp;/&nbsp; 064-200103</div>
+          <div class="sos-name">Municipalidad Provincial de Huancayo</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    SafeRoute · Universidad Continental · Hecho con ❤️ para tu seguridad
+  </footer>
+
+</body>
+</html>
